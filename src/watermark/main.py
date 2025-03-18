@@ -3,12 +3,14 @@ import os
 import glob
 from pathlib import Path
 from watermark import add_repeating_watermark
+from tqdm import tqdm
 import logging
 
 log = logging.getLogger(__name__)
 logging.basicConfig(encoding="utf-8", level=logging.INFO)
 
-if __name__ == "__main__":
+
+def main():
     parser = argparse.ArgumentParser(
         description="Add a repeating diagonal watermark to an image."
     )
@@ -33,28 +35,45 @@ if __name__ == "__main__":
         default=3,
         help="Number of times the text should occur in the image",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Perform a dry-run: show what will happen without executing any actions",
+    )
 
     args = parser.parse_args()
+
+    dry_run = args.dry_run
 
     # Ensure output path exists
     output_folder = Path(args.output_folder)
     if not output_folder.exists():
         log.warn(f"The output folder doesn't exist, creating: '{str(output_folder)}'")
-        os.makedirs(output_folder)
+        if not dry_run:
+            os.makedirs(output_folder)
 
-    for input_filepath in glob.glob(args.pattern):
-        input_filepath = Path(input_filepath)
-        file_ext = input_filepath.suffix
-        filename = input_filepath.stem
-        output_filepath = output_folder / f"{filename}{file_ext}"
+    matched_input_files = glob.glob(args.pattern)
+    if len(matched_input_files) == 0:
+        log.info("No input files found for pattern: '%s'", args.pattern)
+        return
+    matched_input_filepaths = [Path(f) for f in matched_input_files]
 
-        add_repeating_watermark(
-            input_filepath,
-            output_filepath,
-            args.watermark_text,
-            args.opacity,
-            args.font_size,
-            args.occurrence,
+    for input_filepath in tqdm(matched_input_filepaths):
+        output_filepath = (
+            output_folder / f"{input_filepath.stem}{input_filepath.suffix}"
         )
 
-        log.info(f"writing file: '{output_filepath}'")
+        log.info("Adding watermark to %s", input_filepath)
+        if not dry_run:
+            add_repeating_watermark(
+                input_filepath,
+                output_filepath,
+                args.watermark_text,
+                args.opacity,
+                args.font_size,
+                args.occurrence,
+            )
+
+
+if __name__ == "__main__":
+    main()

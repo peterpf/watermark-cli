@@ -19,6 +19,7 @@
       nativeBuildInputs = [ pkgs.hatch ];
       propagatedBuildINputs = [
         pkgs.python312Packages.pillow
+        pkgs.python312Packages.tqdm
       ];
 
       doCheck = false;
